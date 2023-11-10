@@ -13,7 +13,7 @@
 %define parse.error verbose
 %token	<string_val> WORD
 
-%token 	NOTOKEN GREAT APPEND NEWLINE LESS PIPE AMP EXIT
+%token 	NOTOKEN GREAT APPEND NEWLINE LESS PIPE AMP CD EXIT
 
 %union	{
 		char   *string_val;
@@ -36,29 +36,42 @@ goal:
 	commands
 	;
 
-commands: 
+commands:
 	command
 	| commands command 
+	
 	;
 
-command: simple_command
+command:
+	builtin
+	|simple_command
+		 
         ;
 
-simple_command:	
-	EXIT NEWLINE{
+builtin:
+	CD NEWLINE{
+			changeCurrentDirectory(getenv("HOME"));
+			Command::_currentCommand.prompt();
+		}
+	|CD WORD NEWLINE{
+			changeCurrentDirectory($2);
+			Command::_currentCommand.prompt();
+		}
+	|EXIT NEWLINE{
 		printf("\n\t Good bye!!\n");
 		exit(0);
-	}
-	| command_and_args iomodifier_opt_list NEWLINE {
+		}
+simple_command:
+	command_and_args iomodifier_opt_list NEWLINE {
 		printf("   Yacc: Execute command\n");
 		Command::_currentCommand.execute();
 	}
-	| command_and_args iomodifier_opt_list AMP NEWLINE {
+	|command_and_args iomodifier_opt_list AMP NEWLINE {
 		Command::_currentCommand._background = 1;
 		printf("   Yacc: Execute command in Background\n");
 		Command::_currentCommand.execute();
 	}
-	| NEWLINE 
+	| NEWLINE
 	| error NEWLINE { yyerrok; }
 	;
 
@@ -115,12 +128,6 @@ iomodifier_opt:
 		Command::_currentCommand._inputFile = $2;
 	}
 	;
-	| LESS WORD GREAT WORD {
-		printf("   Yacc: insert output \"%s\"\n", $4);
-		Command::_currentCommand._outFile = $4;
-		printf("   Yacc: insert input \"%s\"\n", $2);
-		Command::_currentCommand._inputFile = $2;
-	}
 
 %%
 
@@ -133,6 +140,7 @@ yyerror(const char * s)
 #if 0
 main()
 {
+
 	yyparse();
 }
 #endif

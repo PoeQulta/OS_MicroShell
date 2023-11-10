@@ -27,43 +27,17 @@
 #include <iomanip> // put_time
 /*	Constants	*/
 char LOG_FILE_NAME[] = "/child-log.txt";
-char home_dir[] = "/home/peter/Lab4/PoSh_MicroShell-main";
-char *path_to_current_directory[128];
 int next_dir = 0;
-FILE *fp;
-
-
-
-void openLogFile() {
-	char path_to_log[64];
-	strcpy(path_to_log, getenv("HOME"));
-	strcat(path_to_log, LOG_FILE_NAME);
-	fp = fopen(path_to_log, "a");
-}
-
-void closeLogFile() {
-	fclose(fp);
-}
-void add_dir_to_path(char *directory)
-{
-	if (directory == NULL)
-		next_dir = 0;
-	else if (strcmp(directory, "..") == 0)
-		next_dir--;
-	else
-		path_to_current_directory[next_dir++] = strdup(directory);
-}
+long size;
+char *path_to_current_dir;
+char *ptr_to_current_dir;
 
 int changeCurrentDirectory(const char* dir) {
-    int returnValue = 0;
-    
-    if (dir) {
-        returnValue = chdir(dir);
-    } else {
-        returnValue = chdir(home_dir);
-    }
-    
-    return returnValue;
+	int result = chdir(dir);
+	free(path_to_current_dir);
+	if ((path_to_current_dir = (char *)malloc((size_t)size)) != NULL)
+    	ptr_to_current_dir = getcwd(path_to_current_dir, (size_t)size);
+	return result;
 }
 
 
@@ -298,14 +272,13 @@ Command::execute()
 void
 Command::prompt()
 {
-	signal(SIGINT, catchSIGINT);
-	printf("PoSh>");
+	
+	printf("PoSh> %s $ ",ptr_to_current_dir);
 	fflush(stdout);
 }
 // ignore ctrl-c handler
 void catchSIGINT(int sig_num)
 {
-	signal(SIGINT, catchSIGINT);
 	Command::_currentCommand.clear();
 	printf("\r\033[0J"); // Erase ctrl-C
 	Command::_currentCommand.prompt();
@@ -316,52 +289,14 @@ Command Command::_currentCommand;
 SimpleCommand * Command::_currentSimpleCommand;
 
 int yyparse(void);
-void handleSIGCHLD(int sig_num)
-{
-	int status;
-	wait(&status);
-	openLogFile();
-	flockfile(fp);
-	time_t TIMER = time(NULL);
-	tm *ptm = localtime((&TIMER));
-	char currentTime[32];
-	strcpy(currentTime, asctime(ptm));
-	removeNewline(currentTime, 32);
-	fprintf(fp, "%s: Child Terminated\n", currentTime);
-	funlockfile(fp);
-	fclose(fp);
-	signal(SIGCHLD, handleSIGCHLD);
-}
-
-void removeNewline(char *str, int size)
-{
-	for (int i = 0; i < size; i++)
-	{
-		if (str[i] == '\n')
-		{
-			str[i] = '\0';
-			return;
-		}
-	}
-}
-
 
 int 
 main()
 {
-	// chdir(home_dir);
-	  const char* command = "cd";  
-    char argument[] = "/home/peter/Lab4/PoSh_MicroShell-main";  
-    
-    if (strcmp(command, "cd") == 0) {
-        int result = changeCurrentDirectory(argument);
-        if (result == 0) {
-            printf("Directory changed successfully!\n");
-        } else {
-            fprintf(stderr, "Error changing directory.\n");
-        }
-    }
+	size = pathconf(".", _PC_PATH_MAX);
+	changeCurrentDirectory("");
 	signal(SIGCHLD,logChild);
+	signal(SIGINT, catchSIGINT);
 	Command::_currentCommand.prompt();
 	yyparse();
 	return 0;

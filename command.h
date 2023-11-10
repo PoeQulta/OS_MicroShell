@@ -3,12 +3,8 @@
 #define command_h
 
 void catchSIGINT(int);
-void handleSIGCHLD(int);
-int changeCurrentDirectory(void);
+int changeCurrentDirectory(const char *);
 void add_dir_to_path(char *);
-void removeNewline(char*, int);
-void openLogFile();
-void closeLogFile();
 
 // Command Data Structure
 struct SimpleCommand {
