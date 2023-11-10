@@ -25,6 +25,7 @@
 #include <ctime>   // localtime
 #include <sstream> // stringstream
 #include <iomanip> // put_time
+#include <glob.h>
 /*	Constants	*/
 char LOG_FILE_NAME[] = "/child-log.txt";
 int next_dir = 0;
@@ -48,10 +49,23 @@ SimpleCommand::SimpleCommand()
 	_numberOfArguments = 0;
 	_arguments = (char **) malloc( _numberOfAvailableArguments * sizeof( char * ) );
 }
-
 void
 SimpleCommand::insertArgument( char * argument )
 {
+
+	if(strchr(argument, '*') != NULL | strchr(argument, '?')!= NULL)
+	{
+		glob_t globbuf;
+		if(glob(argument, 0, NULL, &globbuf) == 0)
+		{
+			int n = globbuf.gl_pathc;
+			for(int i=0; i<n;i++)
+			{
+				insertArgument(globbuf.gl_pathv[i]);
+			}
+		}
+		return;
+	}
 	if ( _numberOfAvailableArguments == _numberOfArguments  + 1 ) {
 		// Double the available space
 		_numberOfAvailableArguments *= 2;
