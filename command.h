@@ -43,6 +43,7 @@ struct Command {
 
 	static Command _currentCommand;
 	static SimpleCommand *_currentSimpleCommand;
+	static void logChild(int sig);
 };
 
 #endif

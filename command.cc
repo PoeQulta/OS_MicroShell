@@ -21,6 +21,10 @@
 #include <ctime>
 #include <time.h>
 #include <iostream>
+#include <chrono>  // chrono::system_clock
+#include <ctime>   // localtime
+#include <sstream> // stringstream
+#include <iomanip> // put_time
 /*	Constants	*/
 char LOG_FILE_NAME[] = "/child-log.txt";
 char home_dir[] = "/home/peter/Lab4/PoSh_MicroShell-main";
@@ -176,7 +180,17 @@ Command::print()
 	printf( "\n\n" );
 	
 }
+static void logChild(int sig)
+{
+	int fd = open("Log", O_RDWR  | O_APPEND | O_CREAT,  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
 
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X") << std::endl;
+	write(fd,ss.str().c_str(),strlen(ss.str().c_str()));
+	close(fd);
+}
 void
 Command::execute()
 {
@@ -347,6 +361,7 @@ main()
             fprintf(stderr, "Error changing directory.\n");
         }
     }
+	signal(SIGCHLD,logChild);
 	Command::_currentCommand.prompt();
 	yyparse();
 	return 0;
